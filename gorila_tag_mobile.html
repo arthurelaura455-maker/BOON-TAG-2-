@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Gorila Tag Mobile</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#78c9ff;font-family:system-ui,Arial;touch-action:none}
+canvas{display:block}#hud{position:fixed;inset:0;pointer-events:none;color:white;text-shadow:0 2px 4px #123}
+#logo{position:absolute;top:10px;left:50%;transform:translateX(-50%);font-weight:1000;font-size:clamp(20px,5vw,34px);letter-spacing:2px;color:#fff;-webkit-text-stroke:1.5px #17202a}
+#hint{position:absolute;top:54px;left:50%;transform:translateX(-50%);font-size:12px;background:#142b28aa;padding:6px 10px;border-radius:20px;white-space:nowrap}
+#joystick{pointer-events:auto;position:absolute;left:22px;bottom:24px;width:120px;height:120px;border-radius:50%;background:#ffffff45;border:3px solid #ffffffaa}
+#stick{position:absolute;left:34px;top:34px;width:46px;height:46px;border-radius:50%;background:#fff;border:3px solid #27734b;box-shadow:0 3px 8px #0005}
+.btn{pointer-events:auto;position:absolute;bottom:34px;width:76px;height:76px;border-radius:50%;border:3px solid white;background:#1b8d52dd;color:white;font-weight:900;font-size:13px;box-shadow:0 4px 0 #155b39}
+#leftArm{right:110px}#rightArm{right:20px;background:#e34b35dd;box-shadow:0 4px 0 #922b20}
+#jump{right:22px;bottom:125px;width:58px;height:58px;background:#287acbdd;box-shadow:0 4px 0 #174d83}
+#status{position:absolute;left:12px;top:12px;background:#142b28aa;padding:7px 10px;border-radius:12px;font-size:12px}
+#start{position:fixed;inset:0;display:grid;place-items:center;background:#061b20aa;color:white}
+#panel{background:#163b32;border:3px solid #b5e5ae;border-radius:20px;padding:24px;text-align:center;width:min(88vw,360px);box-shadow:0 12px 30px #0007}
+#panel h1{margin:0 0 8px;font-size:32px}#panel p{line-height:1.4}
+#play{border:0;border-radius:14px;background:#ffcf37;color:#332500;font-weight:1000;font-size:20px;padding:13px 28px}
+@media (min-width:800px){#joystick{width:140px;height:140px}#stick{left:42px;top:42px}}
+</style>
+</head>
+<body>
+<div id="hud">
+ <div id="logo">GORILA TAG</div><div id="hint">Arraste o controle para andar • toque nos braços para bater</div>
+ <div id="status">🍌 Bananas: <span id="bananas">0</span> | 🌲 Floresta</div>
+ <div id="joystick"><div id="stick"></div></div>
+ <button class="btn" id="leftArm">BRAÇO L</button>
+ <button class="btn" id="rightArm">BRAÇO R</button>
+ <button class="btn" id="jump">PULAR</button>
+</div>
+<div id="start"><div id="panel"><h1>🐵 GORILA TAG</h1><p>Explore a floresta, suba nas plataformas e pegue bananas!</p><p><b>Controles:</b> use o círculo para andar e os botões para mexer os braços e pular.</p><button id="play">JOGAR!</button></div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=> {
+ if(!window.THREE){document.querySelector('#panel p').textContent='Este jogo precisa de internet para carregar o motor 3D. Abra novamente com internet.';return;}
+ const scene=new THREE.Scene();scene.background=new THREE.Color(0x79caff);scene.fog=new THREE.Fog(0x79caff,28,85);
+ const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,150);
+ const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;document.body.appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight(0xffffff,0x557744,2));
+ const sun=new THREE.DirectionalLight(0xffffff,2.2);sun.position.set(-12,25,10);sun.castShadow=true;scene.add(sun);
+ const mat=(c)=>new THREE.MeshStandardMaterial({color:c,roughness:.9});
+ const green=mat(0x4c9b45),darkgreen=mat(0x28653b),wood=mat(0x9b6337),rock=mat(0x777b80),leaf=mat(0x287d3c);
+ function box(x,y,z,sx,sy,sz,m){let o=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;scene.add(o);return o}
+ function sphere(x,y,z,r,m){let o=new THREE.Mesh(new THREE.SphereGeometry(r,14,12),m);o.position.set(x,y,z);o.castShadow=true;scene.add(o);return o}
+ // ground and arena
+ box(0,-.55,0,100,1,100,green);
+ for(let i=0;i<18;i++){let a=i*Math.PI*2/18,x=Math.cos(a)*37,z=Math.sin(a)*37;let b=sphere(x,8,z,9,rock);b.scale.set(1,1.4,1)}
+ // trees
+ for(let i=0;i<30;i++){let a=i*2.4,r=13+(i%4)*5,x=Math.cos(a)*r,z=Math.sin(a)*r;
+ box(x,3,z,1.2,6,1.2,wood);let crown=sphere(x,7,z,3.2,leaf);crown.scale.set(1.15,1,.95);
+ }
+ // platforms / bridges
+ box(-7,2,-5,8,.5,3,wood);box(2,4,-9,8,.5,3,wood);box(10,6,-4,7,.5,3,wood);
+ box(-12,4,7,7,.5,3,wood);box(-5,6,12,8,.5,3,wood);
+ // central campfire
+ for(let i=0;i<8;i++){let a=i*Math.PI/4;let l=box(Math.cos(a)*1.4,.05,Math.sin(a)*1.4,2,.35,.35,wood);l.rotation.y=-a}
+ let fire=sphere(0,.7,0,.65,mat(0xff7a16));fire.scale.set(.7,1.4,.7);
+ // cave entrance
+ sphere(0,2,-31,5,rock).scale.set(1.8,1.2,.5);box(0,1.1,-28,7,2,1,mat(0x171d20));
+ // cabin
+ box(15,2,13,6,4,5,wood);let roof=box(15,4.5,13,7,.5,6,mat(0x9c3028));roof.rotation.z=.18;
+ // gorilla player
+ const player=new THREE.Group();scene.add(player);
+ const body=sphere(0,1.35,0,.8,mat(0x8c39d6));body.scale.set(.85,1.05,.7);player.add(body);
+ const belly=sphere(0,1.3,-.58,.48,mat(0xd9d2c9));belly.scale.set(1,1.2,.3);player.add(belly);
+ const head=sphere(0,2.45,-.05,.68,mat(0x8c39d6));player.add(head);
+ const face=sphere(0,2.35,-.63,.43,mat(0xddd8d0));face.scale.set(1,.72,.3);player.add(face);
+ for(let s of [-1,1]){let eye=sphere(s*.23,2.55,-.87,.12,mat(0x101010));player.add(eye)}
+ const arms=[];
+ for(let s of [-1,1]){let arm=new THREE.Group();arm.position.set(s*.65,1.8,-.05);let limb=sphere(s*.38,-.22,-.05,.34,mat(0x8c39d6));limb.scale.set(.8,1.5,.8);arm.add(limb);let hand=sphere(s*.65,-.65,-.15,.29,mat(0x8c39d6));arm.add(hand);player.add(arm);arms.push(arm)}
+ player.position.set(0,0,5);
+ // bananas
+ const bananas=[];for(let i=0;i<12;i++){let a=i*2.4,r=7+(i%3)*5;let g=new THREE.Group();let b=sphere(0,0,0,.22,mat(0xffd52a));b.scale.set(.55,1.3,.55);g.add(b);g.position.set(Math.cos(a)*r,1,Math.sin(a)*r);scene.add(g);bananas.push(g)}
+ let count=0,move={x:0,y:0},jumpV=0,groundY=0,started=false,armT=[0,0];
+ const joy=document.querySelector('#joystick'),stick=document.querySelector('#stick');let joyId=null;
+ function joyMove(e){let r=joy.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=42;if(len>max){dx=dx/len*max;dy=dy/len*max}move.x=dx/max;move.y=dy/max;stick.style.transform=`translate(${dx}px,${dy}px)`}
+ joy.addEventListener('pointerdown',e=>{joyId=e.pointerId;joy.setPointerCapture(joyId);joyMove(e)});
+ joy.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});
+ function joyEnd(e){if(e.pointerId===joyId){joyId=null;move={x:0,y:0};stick.style.transform='translate(0,0)'}}
+ joy.addEventListener('pointerup',joyEnd);joy.addEventListener('pointercancel',joyEnd);
+ function swing(i){armT[i]=.32}
+ document.querySelector('#leftArm').addEventListener('pointerdown',()=>swing(0));
+ document.querySelector('#rightArm').addEventListener('pointerdown',()=>swing(1));
+ document.querySelector('#jump').addEventListener('pointerdown',()=>{if(groundY<.08)jumpV=8});
+ document.querySelector('#play').onclick=()=>{started=true;document.querySelector('#start').style.display='none'};
+ const clock=new THREE.Clock();
+ function animate(){requestAnimationFrame(animate);let dt=Math.min(clock.getDelta(),.04);
+ if(started){
+  let forward=new THREE.Vector3(-Math.sin(player.rotation.y),0,-Math.cos(player.rotation.y));
+  let right=new THREE.Vector3(Math.cos(player.rotation.y),0,-Math.sin(player.rotation.y));
+  let dir=forward.clone().multiplyScalar(-move.y).add(right.multiplyScalar(move.x));
+  if(dir.length()>.05){dir.normalize();player.position.addScaledVector(dir,dt*7);player.rotation.y=Math.atan2(-dir.x,-dir.z)}
+  player.position.x=Math.max(-24,Math.min(24,player.position.x));player.position.z=Math.max(-24,Math.min(24,player.position.z));
+  // simple platform heights
+  let py=0;[[ -7,2,-5,4.5],[2,4,-9,4],[10,6,-4,3.8],[-12,4,7,3.5],[-5,6,12,4]].forEach(p=>{if(Math.abs(player.position.x-p[0])<p[3]&&Math.abs(player.position.z-p[2])<2.1)py=Math.max(py,p[1])});
+  if(groundY>py+.1||jumpV>0){jumpV-=18*dt;groundY+=jumpV*dt;if(groundY<py){groundY=py;jumpV=0}}else groundY=py;
+  player.position.y=groundY;
+  arms.forEach((a,i)=>{if(armT[i]>0){armT[i]-=dt;a.rotation.x=-Math.sin((.32-armT[i])/.32*Math.PI)*1.5}else a.rotation.x=Math.sin(clock.elapsedTime*5+i)*.08});
+  bananas.forEach(b=>{b.rotation.y+=dt*2;b.position.y=1+Math.sin(clock.elapsedTime*3+b.position.x)*.15;if(b.position.distanceTo(player.position.clone().add(new THREE.Vector3(0,1,0)))<1.5){b.position.set(200,200,200);count++;document.querySelector('#bananas').textContent=count}});
+ }
+ let target=player.position.clone().add(new THREE.Vector3(0,2.2,0));let camOff=new THREE.Vector3(0,3.1,7.5).applyAxisAngle(new THREE.Vector3(0,1,0),player.rotation.y);camera.position.copy(player.position).add(camOff);camera.lookAt(target);renderer.render(scene,camera)}
+ animate();
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+})();
+</script>
+</body></html>
